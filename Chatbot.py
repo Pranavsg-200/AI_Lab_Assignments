@@ -1,39 +1,39 @@
-# Simple customer interaction chatbot
-
-# Function to greet the user
-def greet():
-    print("Chatbot: Hello! How can I assist you today?")
-
-# Function to handle user input and provide a response
-def chat():
-    while True:
-        user_input = input("User: ")
-        response = generate_response(user_input)
-        print("Chatbot:", response)
-        if user_input.lower() == "bye":
-            break
-
-# Function to generate a response based on user input
-def generate_response(user_input):
-    if "order" in user_input.lower():
-        return "Sure! Please provide the details of your order."
-    elif "payment" in user_input.lower():
-        return "We accept various payment methods including credit cards and PayPal."
-    elif "shipping" in user_input.lower():
-        return "Our standard shipping time is 3-5 business days."
-    elif "return" in user_input.lower():
-        return "Please refer to our return policy on our website for more information."
-    elif "support" in user_input.lower():
-        return "Our support team is available 24/7. How can I assist you?"
-    elif "thank you" in user_input.lower() or "thanks" in user_input.lower():
-        return "You're welcome! If you have any more questions, feel free to ask."
-    else:
-        return "I'm sorry, I didn't understand. Can you please rephrase your question?"
-
-# Main function to start the chatbot
+def get_book():
+    books = ["DSA", "OOP", "ML", "AI", "CC"]
+ 
+    print("Hello! Welcome to our book shop. How can I assist you today?")
+    print("Books that are available now are:",books)
+ 
+    book = input("Which book are you looking for? ")
+ 
+    book = book.upper()
+    while book not in books:
+ 
+        print("Sorry, we don't have that book. Please choose from the available options.")
+        book = input("Which book would you like to buy? ")
+        book = book.upper()
+    return book
+ 
+def get_quantity():
+    quantity = input("How many books would you like to buy? ")
+    while not quantity.isdigit() or int(quantity) <= 0:
+        print("Please enter a valid quantity.")
+        quantity = input("How many books would you like to buy? ")
+    return int(quantity)
+ 
+def calculate_price(book, quantity):
+    prices = {"DSA": 100, "OOP": 150, "ML": 300, "AI": 450, "CC": 200}
+    price = prices[book] * quantity
+    return price
+ 
 def main():
-    greet()
-    chat()
-
-# Start the chatbot
+ 
+ 
+    book=get_book()
+    quantity = get_quantity()
+    price = calculate_price(book, quantity)
+    print(f"The total price for {quantity} {book}(s) is Rs {price}")
+    print("Thank you for shopping with us!")
+ 
+# Run the chatbot
 main()
