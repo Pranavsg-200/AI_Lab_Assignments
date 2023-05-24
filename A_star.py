@@ -1,102 +1,117 @@
-from heapq import heappop, heappush
+from queue import PriorityQueue
 
-# Game state class
-class GameState:
-    def __init__(self, state, heuristic):
-        self.state = state
-        self.heuristic = heuristic
-        self.g = 0
+# Class to represent a state of the puzzle
+class PuzzleState:
+    def __init__(self, puzzle, parent=None, move=None, cost=0):
+        self.puzzle = puzzle
+        self.parent = parent
+        self.move = move
+        self.cost = cost
+        self.goal = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
+    # Function to get the coordinates of the blank space (0)
+    def find_blank(self):
+        for i in range(len(self.puzzle)):
+            for j in range(len(self.puzzle[i])):
+                if self.puzzle[i][j] == 0:
+                    return i, j
+
+    # Function to generate possible successor states
+    def generate_successors(self):
+        successors = []
+        i, j = self.find_blank()
+
+        # Generate successor by moving the blank space left
+        if j > 0:
+            new_puzzle = [row[:] for row in self.puzzle]
+            new_puzzle[i][j], new_puzzle[i][j - 1] = new_puzzle[i][j - 1], new_puzzle[i][j]
+            successors.append(PuzzleState(new_puzzle, self, "LEFT", self.cost + 1))
+
+        # Generate successor by moving the blank space right
+        if j < len(self.puzzle[i]) - 1:
+            new_puzzle = [row[:] for row in self.puzzle]
+            new_puzzle[i][j], new_puzzle[i][j + 1] = new_puzzle[i][j + 1], new_puzzle[i][j]
+            successors.append(PuzzleState(new_puzzle, self, "RIGHT", self.cost + 1))
+
+        # Generate successor by moving the blank space up
+        if i > 0:
+            new_puzzle = [row[:] for row in self.puzzle]
+            new_puzzle[i][j], new_puzzle[i - 1][j] = new_puzzle[i - 1][j], new_puzzle[i][j]
+            successors.append(PuzzleState(new_puzzle, self, "UP", self.cost + 1))
+
+        # Generate successor by moving the blank space down
+        if i < len(self.puzzle) - 1:
+            new_puzzle = [row[:] for row in self.puzzle]
+            new_puzzle[i][j], new_puzzle[i + 1][j] = new_puzzle[i + 1][j], new_puzzle[i][j]
+            successors.append(PuzzleState(new_puzzle, self, "DOWN", self.cost + 1))
+
+        return successors
+
+    # Function to calculate the heuristic (Manhattan distance) for the current state
+    def calculate_heuristic(self):
+        distance = 0
+        for i in range(len(self.puzzle)):
+            for j in range(len(self.puzzle[i])):
+                if self.puzzle[i][j] != self.goal[i][j] and self.puzzle[i][j] != 0:
+                    x, y = divmod(self.puzzle[i][j] - 1, len(self.puzzle))
+                    distance += abs(x - i) + abs(y - j)
+        return distance
+
+    # Function to check if the current state is the goal state
+    def is_goal(self):
+        return self.puzzle == self.goal
+
+    # Function to get the path from the initial state to the current state
+    def get_path(self):
+        path = []
+        current_state = self
+        while current_state.parent is not None:
+            path.insert(0, current_state.move)
+            current_state = current_state.parent
+        return path
+
+    # Function to compare states based on their costs and heuristics
     def __lt__(self, other):
-        return (self.heuristic + self.g) < (other.heuristic + other.g)
+        return self.cost + self.calculate_heuristic() < other.cost + other.calculate_heuristic()
 
-# Heuristic function: Manhattan Distance
-def manhattan_distance(state, goal_state):
-    distance = 0
+# Function to solve the 8-puzzle problem using A* algorithm
+def solve_8_puzzle(initial_state):
+    open_list = PriorityQueue()
+    open_list.put(initial_state)
 
-    for i in range(3):
-        for j in range(3):
-            tile = state[i][j]
+    while not open_list.empty():
+        current_state = open_list.get()
 
-            if tile == 0:
-                continue
+        if current_state.is_goal():
+            return current_state.get_path()
 
-            goal_pos = find_tile_position(goal_state, tile)
-            distance += abs(i - goal_pos[0]) + abs(j - goal_pos[1])
-
-    return distance
-
-# Helper function: Find tile position in the game state
-def find_tile_position(state, tile):
-    for i in range(3):
-        for j in range(3):
-            if state[i][j] == tile:
-                return (i, j)
-
-# Generate next possible states
-def generate_next_states(state):
-    next_states = []
-    zero_pos = find_tile_position(state, 0)
-
-    for move in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-        dx, dy = move
-        new_pos = (zero_pos[0] + dx, zero_pos[1] + dy)
-
-        if 0 <= new_pos[0] < 3 and 0 <= new_pos[1] < 3:
-            new_state = [list(row) for row in state]
-            new_state[zero_pos[0]][zero_pos[1]] = state[new_pos[0]][new_pos[1]]
-            new_state[new_pos[0]][new_pos[1]] = 0
-            next_states.append(new_state)
-
-    return next_states
-
-# A* search algorithm
-def astar_search(initial_state, goal_state, heuristic_func):
-    open_list = []
-    closed_list = set()
-
-    start_node = GameState(initial_state, heuristic_func(initial_state, goal_state))
-    start_node.g = 0
-    heappush(open_list, start_node)
-
-    while open_list:
-        current_node = heappop(open_list)
-
-        if current_node.state == goal_state:
-            return current_node.state
-
-        closed_list.add(tuple(map(tuple, current_node.state)))
-
-        # Generate next possible states
-        next_states = generate_next_states(current_node.state)
-
-        for next_state in next_states:
-            if tuple(map(tuple, next_state)) in closed_list:
-                continue
-
-            g_score = current_node.g + 1
-            h_score = heuristic_func(next_state, goal_state)
-            next_node = GameState(next_state, h_score)
-            next_node.g = g_score
-
-            heappush(open_list, next_node)
+        successors = current_state.generate_successors()
+        for successor in successors:
+            open_list.put(successor)
 
     return None
 
-# Get user input for the initial and goal states
-print("Enter the initial state (3x3 matrix):")
-initial_state = [list(map(int, input().split())) for _ in range(3)]
+# Main function
+def main():
+    # Get user input for the initial state of the puzzle
+    initial_puzzle = []
+    print("Enter the initial state of the puzzle (use 0 to represent the blank space):")
+    for _ in range(3):
+        row = list(map(int, input().split()))
+        initial_puzzle.append(row)
 
-print("Enter the goal state (3x3 matrix):")
-goal_state = [list(map(int, input().split())) for _ in range(3)]
+    # Create the initial state
+    initial_state = PuzzleState(initial_puzzle)
 
-# Run A* search
-result = astar_search(initial_state, goal_state, manhattan_distance)
+    # Solve the 8-puzzle problem using A* algorithm
+    solution = solve_8_puzzle(initial_state)
 
-# Print the result
-if result:
-    print("Goal state reached:")
-    for row in result:
-        print(*row)
-else:
-    print("Goal state not found.")
+    # Print the solution path
+    if solution is not None:
+        print("Solution found!")
+        print("Moves:", solution)
+    else:
+        print("No solution found!")
+
+# Run the main function
+main()
